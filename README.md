@@ -15,7 +15,7 @@ Antes de começar, certifique-se de ter instalado:
 
 1. **Clone o repositório:**
 ```bash
-git clone https://github.com/alexportoseguro/LocaPrinter.git
+git clone https://github.com/rodrigo847/LocaPrinter.git
 cd LocaPrinter
 ```
 
@@ -43,6 +43,19 @@ npm run dev
 
 O aplicativo estará disponível em `http://localhost:5173`. O frontend pode ser aberto
 sem iniciar o Docker quando `VITE_DEMO_MODE=true`.
+
+## Publicação na Vercel
+
+- Conecte o repositório `rodrigo847/LocaPrinter` e a branch `main`.
+- Utilize o preset Vite, o comando `npm run build` e a pasta de saída `dist`.
+- Para a prévia, configure `VITE_DEMO_MODE=true` nas variáveis de ambiente da Vercel.
+- Alterações nas variáveis exigem um novo deploy.
+- O arquivo `vercel.json` permite acessar e atualizar as rotas internas diretamente,
+  sem retornar 404. Arquivos em `/assets/` continuam sendo servidos como arquivos estáticos.
+
+A prévia não salva clientes no banco. Antes de usar dados reais, implemente
+autenticação, persistência e políticas de acesso por empresa no Supabase. Nunca
+configure a chave `service_role` ou a senha do banco em variáveis `VITE_`.
 
 ## Funcionalidades
 
