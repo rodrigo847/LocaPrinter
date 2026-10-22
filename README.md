@@ -113,6 +113,12 @@ empresas e clientes. O teste transacional em
 múltiplos equipamentos, sequência dos contadores, cálculo da cobrança e
 isolamento por usuário.
 
+O botão **Excluir** fica disponível em cada equipamento. Se houver leituras,
+a confirmação avisa que elas e os respectivos valores de cobrança também serão
+excluídos; a migração
+`supabase/migrations/202610220003_cascade_equipment_readings.sql` habilita essa
+remoção em cascata.
+
 ## Funcionalidades previstas
 
 A lista abaixo descreve o escopo planejado. A disponibilidade real nesta etapa

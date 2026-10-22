@@ -79,6 +79,12 @@ begin
     raise exception using errcode = 'P0002', message = 'Contador menor que o anterior foi aceito';
   exception when sqlstate 'P0001' then null;
   end;
+
+  delete from public.equipment
+  where id = '937c251a-c18e-4a03-9203-f4da39c9f515';
+  if exists (select 1 from public.counter_readings
+    where equipment_id = '937c251a-c18e-4a03-9203-f4da39c9f515')
+  then raise exception 'Excluir equipamento não removeu as leituras associadas'; end if;
 end;
 $$;
 

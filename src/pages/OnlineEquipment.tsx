@@ -542,10 +542,17 @@ export function OnlineEquipment({ company }: { company: CompanyRecord }) {
     toast.success('Leitura e cálculo da cobrança salvos.');
   }
 
-  async function removeEquipment(equipment: EquipmentRecord) {
+  async function removeEquipment(
+    equipment: EquipmentRecord,
+    readingCount: number
+  ) {
+    const historyWarning =
+      readingCount > 0
+        ? ` Serão excluídas também ${readingCount} leitura(s) e seus valores de cobrança. O histórico não poderá ser recuperado.`
+        : '';
     if (
       !window.confirm(
-        `Excluir ${equipment.name}? Esta ação não pode ser desfeita.`
+        `Excluir o equipamento ${equipment.name}? Esta ação não pode ser desfeita.${historyWarning}`
       )
     ) {
       return;
@@ -686,15 +693,16 @@ export function OnlineEquipment({ company }: { company: CompanyRecord }) {
                 >
                   Editar
                 </button>
-                {equipmentReadings.length === 0 && (
-                  <button
-                    className="text-red-600 disabled:opacity-50"
-                    disabled={busyId !== null}
-                    onClick={() => void removeEquipment(equipment)}
-                  >
-                    {busyId === equipment.id ? 'Excluindo...' : 'Excluir'}
-                  </button>
-                )}
+                <button
+                  className="text-red-600 disabled:opacity-50"
+                  disabled={busyId !== null}
+                  onClick={() =>
+                    void removeEquipment(equipment, equipmentReadings.length)
+                  }
+                  aria-label={`Excluir equipamento ${equipment.name}`}
+                >
+                  {busyId === equipment.id ? 'Excluindo...' : 'Excluir'}
+                </button>
               </div>
 
               {equipmentReadings.length > 0 && (
