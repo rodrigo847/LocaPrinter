@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Navigation } from '../components/Navigation'
 import { supabase } from '../lib/supabaseClient'
 import { customerService } from '../services/customerService'
+import { OnlineEquipment } from './OnlineEquipment'
 import type { ClientInput, ClientRecord, CompanyRecord } from '../types/customers'
 
 const actionClass = 'rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700 disabled:opacity-50'
@@ -14,10 +15,15 @@ const panelClass = 'rounded-2xl border border-slate-200 bg-white p-6 shadow-sm d
 function reportError(error: unknown) {
   console.error('Erro na gestão online:', error)
   const code = typeof error === 'object' && error !== null && 'code' in error ? error.code : null
+  const detail = typeof error === 'object' && error !== null && 'message' in error
+    ? String(error.message)
+    : ''
   const message = code === '23505'
     ? 'Este CPF/CNPJ já está cadastrado.'
     : code === '23503'
-      ? 'Esta empresa possui clientes. Exclua ou transfira os clientes antes de excluir a empresa.'
+      ? detail.includes('equipment_client_company_fk')
+        ? 'Este cliente possui equipamentos. Exclua ou transfira os equipamentos antes de excluir o cliente.'
+        : 'Esta empresa possui clientes. Exclua ou transfira os clientes antes de excluir a empresa.'
       : 'Não foi possível concluir a operação. Verifique a conexão e tente novamente.'
   toast.error(message)
 }
@@ -403,9 +409,11 @@ function Workspace({ session, isDarkMode, onToggleDarkMode }: {
               <p className="mt-3">Empresas cadastradas: {query.data?.length ?? '—'}</p>
               <p className="mt-2 text-sm text-slate-500">Empresas e clientes são salvos no banco e protegidos pelo seu login.</p>
               <Link className={`${actionClass} mt-5 inline-block`} to="/clients">Gerenciar clientes</Link>
+              {company && <Link className={`${actionClass} mt-5 inline-block`} to="/equipment">Gerenciar equipamentos</Link>}
             </section>} />
             <Route path="/clients" element={company ? <OnlineClients key={company.id} company={company} /> : <p>Selecione ou cadastre uma empresa para gerenciar os clientes.</p>} />
-            <Route path="*" element={<section className={panelClass}><h1 className="text-xl">Módulo em preparação</h1><p className="mt-3">O uso real está disponível para empresas e clientes. Equipamentos, documentos e relatórios ainda não foram integrados ao novo banco.</p><Link to="/clients" className="mt-4 inline-block text-cyan-700 underline">Ir para clientes</Link></section>} />
+            <Route path="/equipment" element={company ? <OnlineEquipment key={company.id} company={company} /> : <p>Selecione ou cadastre uma empresa para gerenciar os equipamentos.</p>} />
+            <Route path="*" element={<section className={panelClass}><h1 className="text-xl">Módulo em preparação</h1><p className="mt-3">O uso real está disponível para empresas, clientes e equipamentos. Documentos e relatórios ainda não foram integrados ao novo banco.</p><Link to="/clients" className="mt-4 inline-block text-cyan-700 underline">Ir para clientes</Link></section>} />
           </Routes>
         </main>
       </div>

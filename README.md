@@ -89,14 +89,34 @@ O envio de e-mails depende dos limites e das regras do provedor de e-mail do
 Supabase. O provedor padrão pode restringir destinatários aos membros da
 organização; para outros destinatários ou uso contínuo, configure SMTP próprio.
 
-Somente empresas e clientes têm persistência nesta etapa. Equipamentos,
-documentos e relatórios exibem um aviso no modo online para não simular
-operações que ainda não são salvas.
+Empresas, clientes, equipamentos e leituras de contador têm persistência no modo
+online. Documentos e relatórios ainda não foram integrados ao banco.
+
+## Equipamentos e leituras de contador
+
+A migração `supabase/migrations/202610220002_equipment_counter_readings.sql`
+adiciona equipamentos vinculados a clientes e um histórico de leituras por
+equipamento. Um cliente pode ter vários equipamentos, cada qual com seu contador
+inicial e a data desse contador, valor por página e percentual de perdas.
+
+Ao lançar uma leitura, o sistema usa automaticamente o contador da leitura
+anterior (ou o contador inicial), calcula a diferença, aplica o percentual de
+perdas sem arredondar as páginas antes do cálculo financeiro e arredonda o total
+para centavos. O percentual e o valor por página ficam registrados em cada
+leitura para preservar o histórico quando os parâmetros do equipamento mudarem.
+As leituras devem ser posteriores à data do contador inicial e à leitura
+anterior; o banco também valida essa sequência.
+
+Para habilitar o módulo, aplique a migração no Supabase depois da migração de
+empresas e clientes. O teste transacional em
+`supabase/tests/equipment_counter_readings.sql` cobre vínculo com clientes,
+múltiplos equipamentos, sequência dos contadores, cálculo da cobrança e
+isolamento por usuário.
 
 ## Funcionalidades previstas
 
 A lista abaixo descreve o escopo planejado. A disponibilidade real nesta etapa
-está descrita em **Empresas e clientes no banco**.
+está descrita em **Equipamentos e leituras de contador**.
 
 ### Dashboard
 - Estatísticas em tempo real
@@ -109,10 +129,9 @@ está descrita em **Empresas e clientes no banco**.
 - Histórico de locações
 
 ### Gestão de Equipamentos
-- Cadastro de impressoras e equipamentos
-- Monitoramento de status
-- Histórico de manutenções
-- Relatórios de contadores
+- Cadastro de equipamentos vinculados a clientes
+- Histórico de leituras e cálculo de cobrança por página
+- Configuração individual de valor por página e percentual de perdas
 
 ### Relatórios
 - Geração de relatórios customizados
