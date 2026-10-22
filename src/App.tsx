@@ -24,6 +24,7 @@ const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 const hasSupabaseConfiguration = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
 )
+const OnlineApp = lazy(() => import('./pages/OnlineApp'))
 
 const EquipmentPage = lazy(() =>
   import('./pages/EquipmentPage').then(({ EquipmentPage }) => ({
@@ -310,7 +311,7 @@ const Dashboard = () => (
 const queryClient = new QueryClient()
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('darkMode')
     return saved ? JSON.parse(saved) : false
   })
@@ -323,6 +324,19 @@ function App() {
       document.documentElement.classList.remove('dark')
     }
   }, [isDarkMode])
+
+  if (!isDemoMode && hasSupabaseConfiguration) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Suspense fallback={<p className="p-8">Carregando gestão online...</p>}>
+            <OnlineApp isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(value => !value)} />
+          </Suspense>
+          <Toaster position="top-right" richColors />
+        </Router>
+      </QueryClientProvider>
+    )
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -28,7 +28,7 @@ npm install
 ```powershell
 Copy-Item .env.example .env.local
 ```
-Para abrir a prévia sem backend, mantenha `VITE_DEMO_MODE=true`. Para usar documentos,
+Para abrir a prévia sem backend, mantenha `VITE_DEMO_MODE=true`. Para usar a gestão online,
 defina `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` e altere o modo para `false`.
 
 4. **Opcional — inicie os serviços Docker necessários ao backend:**
@@ -53,11 +53,44 @@ sem iniciar o Docker quando `VITE_DEMO_MODE=true`.
 - O arquivo `vercel.json` permite acessar e atualizar as rotas internas diretamente,
   sem retornar 404. Arquivos em `/assets/` continuam sendo servidos como arquivos estáticos.
 
-A prévia não salva clientes no banco. Antes de usar dados reais, implemente
-autenticação, persistência e políticas de acesso por empresa no Supabase. Nunca
+A prévia não salva clientes no banco. Para usar dados reais, siga a configuração
+de autenticação, tabelas e políticas de acesso abaixo. Nunca
 configure a chave `service_role` ou a senha do banco em variáveis `VITE_`.
 
-## Funcionalidades
+## Empresas e clientes no banco
+
+A primeira integração real utiliza `companies` e `clients`. O SQL versionado em
+`supabase/migrations/202610220001_companies_clients.sql` cria tabelas, validações,
+índices e políticas RLS. A migração deve ser aplicada uma única vez. O teste em
+`supabase/tests/companies_clients.sql` verifica CRUD, restrições e isolamento entre
+usuários em uma transação revertida, sem deixar cadastros de teste.
+
+Para habilitar a gestão online:
+
+1. No Supabase Auth, desative **Allow new users to sign up** e mantenha logins
+   anônimos desativados. Autorize o usuário em **Authentication → Users**.
+2. Configure **Site URL** com a URL exata da aplicação publicada.
+3. Conecte o banco ao projeto da Vercel. O build aceita `SUPABASE_URL` e
+   `SUPABASE_ANON_KEY` da integração, expondo somente esses dois valores públicos
+   nos nomes `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`. As variáveis `VITE_`
+   explícitas têm prioridade; nenhuma senha ou chave administrativa é exposta.
+4. Altere `VITE_DEMO_MODE=false` e publique novamente.
+5. Entre com o e-mail autorizado e abra o link recebido. Cadastre a empresa
+   antes de cadastrar clientes. Cada conta só acessa empresas das quais é
+   proprietária; convites e equipes compartilhadas ainda não estão implementados.
+
+O envio de e-mails depende dos limites e das regras do provedor de e-mail do
+Supabase. O provedor padrão pode restringir destinatários aos membros da
+organização; para outros destinatários ou uso contínuo, configure SMTP próprio.
+
+Somente empresas e clientes têm persistência nesta etapa. Equipamentos,
+documentos e relatórios exibem um aviso no modo online para não simular
+operações que ainda não são salvas.
+
+## Funcionalidades previstas
+
+A lista abaixo descreve o escopo planejado. A disponibilidade real nesta etapa
+está descrita em **Empresas e clientes no banco**.
 
 ### Dashboard
 - Estatísticas em tempo real
