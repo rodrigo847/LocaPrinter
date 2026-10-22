@@ -6,7 +6,7 @@ Sistema de gestão para locação de impressoras e equipamentos, com suporte a m
 
 Antes de começar, certifique-se de ter instalado:
 
-- [Node.js](https://nodejs.org/) (versão 18 ou superior)
+- [Node.js](https://nodejs.org/) (versão 22 ou superior; CI utiliza Node 22)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - [Git](https://git-scm.com/)
 - [VS Code](https://code.visualstudio.com/) (recomendado)
@@ -56,6 +56,35 @@ sem iniciar o Docker quando `VITE_DEMO_MODE=true`.
 A prévia não salva clientes no banco. Para usar dados reais, siga a configuração
 de autenticação, tabelas e políticas de acesso abaixo. Nunca
 configure a chave `service_role` ou a senha do banco em variáveis `VITE_`.
+
+## Integração contínua e notificações
+
+O workflow único `.github/workflows/ci.yml` roda em pushes e pull requests para
+`main` e `develop`, utilizando Node 22 e `npm ci`. Ele executa:
+
+- `npm run test:ci`: testes de cálculo de cobrança e formatação de páginas,
+  com configuração isolada em `jest.ci.config.cjs`.
+- `npm run build`: build do frontend em modo de demonstração, sem exigir
+  credenciais do Supabase.
+- Upload de `dist` como artefato para inspeção; não publica o site.
+
+A publicação continua pela integração do repositório com a Vercel. Os antigos
+jobs de deploy eram modelos sem publicação real e foram removidos junto com o
+workflow duplicado. Novos pushes na mesma branch cancelam execuções anteriores
+do mesmo workflow ainda em andamento.
+
+**Limitação temporária do CI:** o lint e a suíte completa legada não são gates
+neste workflow. O lint tem configurações conflitantes e problemas acumulados;
+os testes legados misturam Jest e Vitest e possuem configurações incompatíveis.
+`npm run test:ci` não equivale à suíte completa. A recuperação dessas verificações
+é uma pendência separada; os comandos legados não foram alterados.
+
+Os e-mails de falha do GitHub Actions são notificações do GitHub, não mensagens
+enviadas pelo aplicativo. A configuração antiga utilizava ações de artefatos v3,
+desativadas pelo GitHub, e executava dois workflows por push. As correções só
+entram em vigor após commit e push; não alteram os resultados das execuções antigas.
+As preferências de e-mail podem ser ajustadas em **GitHub → Settings →
+Notifications → Actions**, sem desativar as verificações.
 
 ## Empresas e clientes no banco
 
