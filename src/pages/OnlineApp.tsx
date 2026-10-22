@@ -22,44 +22,69 @@ function reportError(error: unknown) {
   toast.error(message)
 }
 
-function Field({ label, name, value, type = 'text', required = false, maxLength }: {
+function authErrorMessage(error: unknown) {
+  const code = typeof error === 'object' && error !== null && 'code' in error ? error.code : null
+  switch (code) {
+    case 'invalid_credentials': return 'E-mail ou senha incorretos.'
+    case 'email_not_confirmed': return 'Confirme seu e-mail pelo convite de primeiro acesso.'
+    case 'over_email_send_rate_limit': return 'O limite temporário de envio de e-mails foi atingido. Tente mais tarde ou entre com sua senha.'
+    case 'over_request_rate_limit': return 'Muitas tentativas de acesso. Aguarde antes de tentar novamente.'
+    case 'weak_password': return 'Escolha uma senha mais forte, com pelo menos 12 caracteres.'
+    case 'same_password': return 'Escolha uma senha diferente da atual.'
+    case 'reauthentication_needed': return 'Entre novamente antes de alterar sua senha.'
+    default: return 'Não foi possível concluir o acesso. Confira os dados, a conexão e se sua conta já foi autorizada.'
+  }
+}
+
+function Field({ label, name, value, type = 'text', required = false, maxLength, minLength, autoComplete }: {
   label: string
   name: string
   value?: string
   type?: string
   required?: boolean
   maxLength?: number
+  minLength?: number
+  autoComplete?: string
 }) {
   return (
     <label className="block text-sm font-medium">
       {label}
       <input name={name} type={type} defaultValue={value} required={required}
-        maxLength={maxLength} className="input mt-1 dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
+        maxLength={maxLength} minLength={minLength} autoComplete={autoComplete}
+        className="input mt-1 dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
     </label>
   )
 }
 
 function Login() {
   const [busy, setBusy] = useState(false)
+  const [useEmailLink, setUseEmailLink] = useState(false)
   const [sent, setSent] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() =>
+    new URLSearchParams(window.location.hash.slice(1)).has('error')
+      ? 'Este link expirou ou já foi utilizado. Cada link funciona uma única vez. Entre com sua senha ou solicite outro link.'
+      : null
+  )
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const email = String(new FormData(event.currentTarget).get('email')).trim()
+    const data = new FormData(event.currentTarget)
+    const email = String(data.get('email')).trim()
     setBusy(true)
     setError(null)
     setSent(false)
     try {
-      const { error: authError } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false, emailRedirectTo: window.location.origin },
-      })
+      const { error: authError } = useEmailLink
+        ? await supabase.auth.signInWithOtp({
+          email,
+          options: { shouldCreateUser: false, emailRedirectTo: window.location.origin },
+        })
+        : await supabase.auth.signInWithPassword({ email, password: String(data.get('password')) })
       if (authError) throw authError
-      setSent(true)
+      if (useEmailLink) setSent(true)
     } catch (authError) {
       console.error('Erro ao solicitar acesso:', authError)
-      setError('Não foi possível enviar o link. Confira se seu acesso já foi autorizado e tente novamente.')
+      setError(authErrorMessage(authError))
     } finally {
       setBusy(false)
     }
@@ -71,16 +96,67 @@ function Login() {
         <div>
           <p className="text-sm font-bold uppercase tracking-widest text-cyan-700">LocaPrinter</p>
           <h1 className="mt-3 text-2xl">Acesse sua gestão</h1>
-          <p className="mt-2 text-sm text-slate-500">Acesso restrito. Enviaremos um link de entrada para o e-mail autorizado, sem precisar de senha.</p>
+          <p className="mt-2 text-sm text-slate-500">Acesso restrito às contas autorizadas.</p>
         </div>
-        <Field label="E-mail autorizado" name="email" type="email" required />
-        {sent && <p role="status" className="text-sm text-emerald-700">Se o e-mail estiver autorizado, você receberá um link. Confira também a pasta de spam.</p>}
+        <Field label="E-mail autorizado" name="email" type="email" autoComplete="username" required />
+        {!useEmailLink && <Field label="Senha" name="password" type="password" autoComplete="current-password" required />}
+        {useEmailLink && <p className="text-sm text-slate-500">Primeiro acesso ou recuperação: abra somente o link mais recente, uma única vez, no aparelho em que deseja entrar. Depois de entrar, você poderá definir sua senha.</p>}
+        {sent && <p role="status" className="text-sm text-emerald-700">Se o e-mail estiver autorizado, você receberá um link. Confira também a pasta de spam e os limites de envio do provedor.</p>}
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         <button type="submit" className={`${actionClass} w-full`} disabled={busy}>
-          {busy ? 'Enviando...' : 'Receber link de acesso'}
+          {busy ? 'Aguarde...' : useEmailLink ? 'Receber link de acesso' : 'Entrar'}
+        </button>
+        <button type="button" disabled={busy} className="w-full text-sm text-cyan-700 underline dark:text-cyan-300"
+          onClick={() => { setUseEmailLink(value => !value); setError(null); setSent(false) }}>
+          {useEmailLink ? 'Voltar para e-mail e senha' : 'Primeiro acesso ou esqueci minha senha'}
         </button>
       </form>
     </main>
+  )
+}
+
+function PasswordForm({ onClose }: { onClose: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const password = String(data.get('password'))
+    if (password !== data.get('confirmation')) {
+      setError('As senhas não coincidem.')
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      const { error: authError } = await supabase.auth.updateUser({ password })
+      if (authError) throw authError
+      toast.success('Senha salva. Agora você pode entrar com e-mail e senha em outros aparelhos.')
+      onClose()
+    } catch (authError) {
+      console.error('Erro ao definir senha:', authError)
+      setError(authErrorMessage(authError))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <section role="dialog" aria-modal="true" aria-labelledby="password-title"
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4">
+      <form onSubmit={submit} className={`${panelClass} mx-auto my-6 max-w-md space-y-4`}>
+        <h2 id="password-title" className="text-xl">Definir ou alterar senha</h2>
+        <p className="text-sm text-slate-500">Use pelo menos 12 caracteres. Não compartilhe sua senha.</p>
+        <fieldset disabled={busy} className="space-y-4">
+          <Field name="password" label="Nova senha" type="password" required minLength={12} maxLength={72} autoComplete="new-password" />
+          <Field name="confirmation" label="Confirmar nova senha" type="password" required minLength={12} maxLength={72} autoComplete="new-password" />
+        </fieldset>
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+        <div className="flex gap-3">
+          <button className={actionClass} disabled={busy}>{busy ? 'Salvando...' : 'Salvar senha'}</button>
+          <button type="button" disabled={busy} onClick={onClose}>Cancelar</button>
+        </div>
+      </form>
+    </section>
   )
 }
 
@@ -254,6 +330,7 @@ function Workspace({ session, isDarkMode, onToggleDarkMode }: {
   const [selectedId, setSelectedId] = useState('')
   const [editor, setEditor] = useState<{ company: CompanyRecord | null } | null>(null)
   const [busy, setBusy] = useState(false)
+  const [passwordOpen, setPasswordOpen] = useState(false)
   const company = query.data?.find(item => item.id === selectedId) ?? query.data?.[0]
   async function saveCompany(input: { name: string; cnpj: string }, id?: string) {
     const saved = await customerService.saveCompany(input, id)
@@ -293,7 +370,10 @@ function Workspace({ session, isDarkMode, onToggleDarkMode }: {
       <div className="min-h-screen bg-slate-50 pt-16 dark:bg-slate-900 md:pl-[260px] md:pt-0">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-950">
           <span className="text-sm">Acesso privado · {session.user.email}</span>
-          <button disabled={busy} onClick={() => void logout()} className="text-sm text-cyan-700 dark:text-cyan-300">Sair</button>
+          <div className="flex gap-4">
+            <button disabled={busy} onClick={() => setPasswordOpen(true)} className="text-sm text-cyan-700 dark:text-cyan-300">Definir/alterar senha</button>
+            <button disabled={busy} onClick={() => void logout()} className="text-sm text-cyan-700 dark:text-cyan-300">Sair</button>
+          </div>
         </header>
         <main className="mx-auto max-w-6xl space-y-6 p-5 sm:p-8">
           {query.isLoading && <p role="status">Carregando empresas...</p>}
@@ -315,6 +395,7 @@ function Workspace({ session, isDarkMode, onToggleDarkMode }: {
               </>}
             </div>
           )}
+          {passwordOpen && <PasswordForm onClose={() => setPasswordOpen(false)} />}
           {editor && <CompanyForm key={editor.company?.id ?? 'new'} company={editor.company} onSave={saveCompany} onClose={() => setEditor(null)} />}
           <Routes>
             <Route path="/" element={<section className={panelClass}>

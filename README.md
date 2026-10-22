@@ -75,7 +75,13 @@ Para habilitar a gestão online:
    nos nomes `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`. As variáveis `VITE_`
    explícitas têm prioridade; nenhuma senha ou chave administrativa é exposta.
 4. Altere `VITE_DEMO_MODE=false` e publique novamente.
-5. Entre com o e-mail autorizado e abra o link recebido. Cadastre a empresa
+5. No primeiro acesso, abra o convite recebido no e-mail autorizado. Cada link
+   funciona uma única vez; um novo envio pode invalidar o anterior.
+6. Dentro da aplicação, use **Definir/alterar senha** para escolher sua senha
+   (mínimo de 12 caracteres). Depois, entre com e-mail e senha em outros aparelhos,
+   sem depender de novos e-mails. **Primeiro acesso ou esqueci minha senha**
+   continua disponível para solicitar um link, sujeito aos limites do provedor.
+7. Cadastre a empresa
    antes de cadastrar clientes. Cada conta só acessa empresas das quais é
    proprietária; convites e equipes compartilhadas ainda não estão implementados.
 
