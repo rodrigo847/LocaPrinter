@@ -591,8 +591,10 @@ export function OnlineEquipment({ company }: { company: CompanyRecord }) {
     <section className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl">Equipamentos</h1>
-          <p className="text-sm text-slate-500">{company.name}</p>
+          <h1 className="text-2xl">Equipamentos dos clientes</h1>
+          <p className="text-sm text-slate-500">
+            Cadastre cada equipamento dentro do cliente que o utiliza.
+          </p>
         </div>
         <button
           className={actionClass}

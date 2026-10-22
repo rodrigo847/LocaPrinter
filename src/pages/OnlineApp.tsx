@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Route, Routes } from 'react-router-dom'
 import { toast } from 'sonner'
+import { Building2, Plus } from 'lucide-react'
 import { Navigation } from '../components/Navigation'
 import { supabase } from '../lib/supabaseClient'
 import { customerService } from '../services/customerService'
@@ -204,8 +205,9 @@ function CompanyForm({ company, onSave, onClose }: {
   )
 }
 
-function ClientEditor({ companyId, client, onSaved, onClose }: {
+function ClientEditor({ companyId, companyName, client, onSaved, onClose }: {
   companyId: string
+  companyName: string
   client: ClientRecord | null
   onSaved: () => Promise<void>
   onClose: () => void
@@ -245,7 +247,13 @@ function ClientEditor({ companyId, client, onSaved, onClose }: {
     <section role="dialog" aria-modal="true" aria-labelledby="client-editor-title"
       className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4">
       <form onSubmit={submit} className={`${panelClass} mx-auto my-6 max-w-2xl space-y-4`}>
-        <h2 id="client-editor-title" className="text-xl">{client ? 'Editar cliente' : 'Novo cliente'}</h2>
+        <div>
+          <h2 id="client-editor-title" className="text-xl">{client ? 'Editar cliente' : 'Novo cliente'}</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {client ? 'Este cadastro pertence à empresa de locação ' : 'Cadastre quem aluga seus equipamentos. Este cliente ficará vinculado à empresa de locação '}
+            <strong className="font-semibold text-slate-700 dark:text-slate-200">{companyName}</strong>.
+          </p>
+        </div>
         <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
           <label className="text-sm font-medium">Tipo de pessoa
             <select className="input mt-1 dark:bg-slate-900" value={personType}
@@ -296,12 +304,19 @@ function OnlineClients({ company }: { company: CompanyRecord }) {
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div><h1 className="text-2xl">Clientes</h1><p className="text-sm text-slate-500">{company.name}</p></div>
-        <button className={actionClass} onClick={() => setEditor({ client: null })}>Novo cliente</button>
+        <div>
+          <h1 className="text-2xl">Clientes</h1>
+          <p className="text-sm text-slate-500">
+            Pessoas e empresas que alugam equipamentos da sua locadora.
+          </p>
+        </div>
+        <button className={`${actionClass} inline-flex items-center gap-2`} onClick={() => setEditor({ client: null })}>
+          <Plus size={17} />
+          Novo cliente
+        </button>
       </div>
       {query.isLoading && <p role="status">Carregando clientes...</p>}
       {query.isError && <div role="alert" className={panelClass}>Erro ao carregar clientes. <button onClick={() => void query.refetch()} className="text-cyan-700 underline">Tentar novamente</button></div>}
-      {query.isSuccess && query.data.length === 0 && <p className={panelClass}>Nenhum cliente cadastrado nesta empresa.</p>}
       <div className="grid gap-4 lg:grid-cols-2">
         {query.data?.map(client => (
           <article key={client.id} className={panelClass}>
@@ -319,7 +334,7 @@ function OnlineClients({ company }: { company: CompanyRecord }) {
           </article>
         ))}
       </div>
-      {editor && <ClientEditor companyId={company.id} client={editor.client}
+      {editor && <ClientEditor companyId={company.id} companyName={company.name} client={editor.client}
         onClose={() => setEditor(null)} onSaved={() => queryClient.invalidateQueries({ queryKey: key })} />}
     </section>
   )
@@ -385,21 +400,47 @@ function Workspace({ session, isDarkMode, onToggleDarkMode }: {
           {query.isLoading && <p role="status">Carregando empresas...</p>}
           {query.isError && <div role="alert" className={panelClass}>Erro ao carregar empresas. <button onClick={() => void query.refetch()} className="text-cyan-700 underline">Tentar novamente</button></div>}
           {query.isSuccess && (
-            <div className={`${panelClass} flex flex-wrap items-end gap-4`}>
-              {company ? (
-                <label className="min-w-0 flex-1 text-sm font-medium">Empresa atual
-                  <select aria-label="Empresa atual" value={company.id} onChange={event => { setSelectedId(event.target.value); setEditor(null) }}
-                    className="input mt-1 dark:bg-slate-900">
-                    {query.data.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}
-                  </select>
-                </label>
-              ) : <p className="flex-1">Cadastre sua empresa para começar.</p>}
-              <button className={actionClass} onClick={() => setEditor({ company: null })}>Nova empresa</button>
-              {company && <>
-                <button className="text-sm text-cyan-700 dark:text-cyan-300" onClick={() => setEditor({ company })}>Editar empresa</button>
-                <button disabled={busy} className="text-sm text-red-600" onClick={() => void deleteCompany()}>Excluir empresa</button>
-              </>}
-            </div>
+            <section aria-label="Empresa de locação" className={`${panelClass} space-y-4`}>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300">
+                    <Building2 size={20} />
+                  </span>
+                  <div>
+                    <h2 className="font-semibold">Empresa de locação</h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      É a sua empresa. Os clientes e equipamentos ficam organizados dentro dela.
+                    </p>
+                  </div>
+                </div>
+                {company && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button className="text-sm text-cyan-700 dark:text-cyan-300" onClick={() => setEditor({ company })}>Editar dados</button>
+                    <button disabled={busy} className="text-sm text-red-600" onClick={() => void deleteCompany()}>Excluir empresa</button>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap items-end gap-3">
+                {company ? (
+                  <label className="min-w-0 flex-1 text-sm font-medium">
+                    Empresa que você está gerenciando
+                    <select aria-label="Empresa que você está gerenciando" value={company.id} onChange={event => { setSelectedId(event.target.value); setEditor(null) }}
+                      className="input mt-1 dark:bg-slate-900">
+                      {query.data.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}
+                    </select>
+                  </label>
+                ) : <p className="flex-1 text-sm">Cadastre sua empresa de locação para começar.</p>}
+                <button className={`${actionClass} inline-flex items-center gap-2`} onClick={() => setEditor({ company: null })}>
+                  <Plus size={17} />
+                  Cadastrar empresa
+                </button>
+              </div>
+              {company && (
+                <p className="border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800">
+                  Fluxo: <strong className="font-semibold">sua empresa de locação</strong> → clientes que contratam → equipamentos de cada cliente.
+                </p>
+              )}
+            </section>
           )}
           {passwordOpen && <PasswordForm onClose={() => setPasswordOpen(false)} />}
           {editor && <CompanyForm key={editor.company?.id ?? 'new'} company={editor.company} onSave={saveCompany} onClose={() => setEditor(null)} />}
