@@ -24,13 +24,14 @@ cd LocaPrinter
 npm install
 ```
 
-3. **Configure as variáveis de ambiente:**
-```bash
-cp .env.example .env
+3. **Configure as variáveis de ambiente (PowerShell):**
+```powershell
+Copy-Item .env.example .env.local
 ```
-Edite o arquivo `.env` com suas configurações
+Para abrir a prévia sem backend, mantenha `VITE_DEMO_MODE=true`. Para usar documentos,
+defina `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` e altere o modo para `false`.
 
-4. **Inicie os serviços Docker:**
+4. **Opcional — inicie os serviços Docker necessários ao backend:**
 ```bash
 docker-compose up -d
 ```
@@ -40,7 +41,8 @@ docker-compose up -d
 npm run dev
 ```
 
-O aplicativo estará disponível em `http://localhost:3000`
+O aplicativo estará disponível em `http://localhost:5173`. O frontend pode ser aberto
+sem iniciar o Docker quando `VITE_DEMO_MODE=true`.
 
 ## Funcionalidades
 

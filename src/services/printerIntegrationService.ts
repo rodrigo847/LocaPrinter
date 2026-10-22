@@ -11,8 +11,8 @@ class PrinterIntegrationService {
   private readonly STATUS_CHECK_INTERVAL = 60000; // 1 minuto
 
   private constructor() {
-    this.baseUrl = process.env.REACT_APP_PRINTER_API_URL || '';
-    this.apiKey = process.env.REACT_APP_PRINTER_API_KEY || '';
+    this.baseUrl = import.meta.env.VITE_PRINTER_API_URL || '';
+    this.apiKey = import.meta.env.VITE_PRINTER_API_KEY || '';
   }
 
   public static getInstance(): PrinterIntegrationService {

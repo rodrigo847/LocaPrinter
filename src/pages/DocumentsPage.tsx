@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DocumentUpload } from '../components/documents/DocumentUpload'
 import { DocumentList } from '../components/documents/DocumentList'
 import { DocumentViewer } from '../components/documents/DocumentViewer'
@@ -10,13 +10,53 @@ type Document = Database['public']['Tables']['documents']['Row']
 export function DocumentsPage() {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
+  const [userError, setUserError] = useState<string | null>(null)
 
-  // Verificar usuário atual
-  supabase.auth.getUser().then(({ data: { user } }) => {
-    if (user) {
-      setUserId(user.id)
+  useEffect(() => {
+    let isMounted = true
+
+    const loadUser = async () => {
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser()
+
+        if (error) throw error
+        if (isMounted) setUserId(user?.id ?? null)
+      } catch (error) {
+        console.error('Erro ao verificar usuário atual:', error)
+        if (isMounted) {
+          setUserError('Não foi possível verificar sua sessão. Tente novamente.')
+        }
+      } finally {
+        if (isMounted) setIsLoadingUser(false)
+      }
     }
-  })
+
+    void loadUser()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  if (isLoadingUser) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-lg text-gray-500">Verificando sessão...</p>
+      </div>
+    )
+  }
+
+  if (userError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-lg text-red-500">{userError}</p>
+      </div>
+    )
+  }
 
   if (!userId) {
     return (
